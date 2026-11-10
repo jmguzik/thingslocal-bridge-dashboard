@@ -1,0 +1,7 @@
+"""Public dashboard constants."""
+DOMAIN = "thingslocal_dashboard"
+VERSION = "0.1.0"
+STATIC_PATH = "/thingslocal_dashboard"
+CARD_PATH = STATIC_PATH + "/thingslocal-dashboard-card.js"
+CARD_URL = f"{CARD_PATH}?v={VERSION}"
+DASHBOARD_PATH = "thingslocal-dashboard"

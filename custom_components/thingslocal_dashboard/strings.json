@@ -1,0 +1,4 @@
+{
+  "title": "ThingsLocal Dashboard",
+  "config": {"step": {"user": {"title": "ThingsLocal Dashboard", "description": "Add a local appliance dashboard using your existing ThingsLocal Bridge entities. Language and view settings are available inside the dashboard."}}, "abort": {"already_configured": "ThingsLocal Dashboard is already configured."}}
+}

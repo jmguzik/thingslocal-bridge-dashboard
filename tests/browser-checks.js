@@ -1,0 +1,90 @@
+const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const checks=[];
+const check=(value,name)=>{if(!value)throw new Error(name);checks.push(name);};
+const wait=async predicate=>{for(let i=0;i<120;i++){if(predicate())return;await delay(25);}throw new Error('Timed out waiting for UI');};
+try {
+  const demo=window.thingslocalDemo, card=demo.card;
+  await wait(()=>card._loaded);
+  const root=card.shadowRoot;
+  check(root.querySelectorAll('[data-device-card]').length===3,'all profiles rendered');
+  check(root.querySelectorAll('.zone').length===4,'dynamic cooktop zones');
+  check(root.querySelectorAll('select[data-program] option').length===8,'device-reported programs');
+  check(demo.data.calls.length===0,'render does not call services');
+  root.querySelector('[data-language="pl"]').click();
+  check(root.textContent.includes('Program zmywania')&&root.textContent.includes('Pola grzewcze'),'Polish labels');
+  root.querySelector('[data-language="en"]').click();
+  check(root.textContent.includes('Washing program')&&root.textContent.includes('Cooking zones'),'English labels');
+  root.querySelector('[data-filter="active"]').click();
+  check(root.querySelectorAll('[data-device-card]').length===1,'active filter');
+  root.querySelector('[data-filter="all"]').click();
+  const input=root.querySelector('[data-search]');input.focus();input.value='Utility';input.dispatchEvent(new Event('input',{bubbles:true}));
+  check(root.querySelectorAll('[data-device-card]').length===1,'generic appliance search');
+  const clear=root.querySelector('[data-search]');clear.value='';clear.dispatchEvent(new Event('input',{bubbles:true}));clear.blur();
+  const select=root.querySelector('select[data-program]');select.focus();
+  const entity=demo.data.devices[0].entities.find(e=>e.role==='zone_level');
+  demo.data.states[entity.entity_id]={...demo.data.states[entity.entity_id],state:'3'};demo.apply();
+  check(root.querySelector('select[data-program]')===select,'HA updates preserve focused dropdown');select.blur();await delay(0);
+  const program=root.querySelector('select[data-program]');program.value='auto';program.dispatchEvent(new Event('change',{bubbles:true}));
+  check(demo.data.calls.length===1,'exact program service dispatched');
+  check(card._pending.size===1,'service resolution is not device confirmation');
+  await wait(()=>card._pending.size===0);
+  check(demo.data.states[demo.data.select].state==='auto'&&root.textContent.includes('Program confirmed'),'fresh program confirmation');
+  const count=demo.data.calls.length;
+  card.setConfig({language:'en',read_only:true});
+  demo.update({user:{...demo.hass.user,is_admin:true}});await wait(()=>!card._loading);
+  await card._selectProgram(demo.data.select,'eco');
+  check(demo.data.calls.length===count&&root.querySelector('select[data-program]').disabled,'read-only prevents writes');
+  check(!root.querySelector(`[data-more="${demo.data.select}"]`),'read-only has no writable more-info link');
+  check(!root.querySelector('.device-link'),'read-only admin has no writable native device link');
+  card.setConfig({language:'en'});
+  root.querySelector('select[data-program]').focus();demo.update({connected:false});
+  check(root.querySelector('select[data-program]').disabled,'disconnect disables focused control');
+  await card._selectProgram(demo.data.select,'eco');check(demo.data.calls.length===count,'disconnected control cannot write');
+  root.querySelector('select[data-program]').blur();demo.update({connected:true});await wait(()=>!card._loading);
+  const clean=demo.data.devices[1].entities.find(e=>e.role==='cleaning_due');
+  demo.data.states[clean.entity_id]={...demo.data.states[clean.entity_id],state:'unavailable'};demo.apply();
+  check(root.textContent.includes('Waiting for a local cleaning count'),'missing cleaning data stays unknown');
+  const messages=demo.data.devices[1].entities.find(e=>e.role==='messages'), attention=demo.data.devices[1].entities.find(e=>e.role==='attention');
+  demo.data.states[messages.entity_id]={...demo.data.states[messages.entity_id],attributes:{messages:[{code:'EXAMPLE',description:'<img src=x onerror="window.unsafe=true">'}]}};
+  demo.data.states[attention.entity_id]={...demo.data.states[attention.entity_id],state:'on'};demo.apply();
+  check(!root.querySelector('.alerts img')&&!window.unsafe&&root.textContent.includes('<img'),'message HTML is escaped');
+  demo.data.states[messages.entity_id]={...demo.data.states[messages.entity_id],attributes:{messages:[null,{},'bad',{code:'VALID',description:5}]}};demo.apply();
+  check(root.textContent.includes('VALID'),'malformed message entries cannot break the dashboard');
+  // Same-object reconnection must invalidate an unresolved metadata response.
+  let resolveDisconnected;
+  demo.update({callWS:()=>new Promise(resolve=>{resolveDisconnected=resolve;})});
+  card._discover();await delay(0);demo.update({connected:false});
+  demo.update({connected:true,callWS:async()=>({devices:demo.data.devices})});
+  await wait(()=>card._loaded&&!card._loading);
+  resolveDisconnected({devices:[]});await delay(0);
+  check(root.querySelectorAll('[data-device-card]').length===3,'same-object reconnect rejects an old metadata response');
+  const generic=demo.data.devices[2];
+  generic.entities.push({entity_id:'sensor.shared_timer',domain:'sensor',role:'zone_timer',component:'main',name:'Shared timer'});
+  demo.data.states['sensor.shared_timer']={state:'3',attributes:{}};demo.apply();
+  check(!root.querySelector('[data-device-card="utility"] .zones')&&root.querySelector('[data-device-card="utility"]').textContent.includes('Timer'),'generic shared timer is a metric, not a cooktop zone');
+  // Start an old metadata request, switch users, then deliver its stale response.
+  let resolveOld;
+  demo.update({callWS:()=>new Promise(resolve=>{resolveOld=resolve;})});
+  card._discover();await delay(0);
+  demo.update({user:{id:'different-user',is_admin:false},language:'en',callWS:async()=>({devices:[]})});
+  await wait(()=>card._loaded&&!card._loading);
+  resolveOld({devices:demo.data.devices});await delay(0);
+  check(root.querySelectorAll('[data-device-card]').length===0,'old user metadata cannot reappear');
+  check(card._lang==='en','preferences are scoped to HA user');
+  localStorage.clear();demo.reset();await wait(()=>card._loaded);
+  const wanted=new URLSearchParams(location.search).get('language')||'en';
+  card._prefs.language=wanted;card._render(true);
+  await delay(30);
+  if(innerWidth>680){
+    const wrapper=document.querySelector('#app');wrapper.style.width='340px';await delay(30);
+    check(getComputedStyle(root.querySelector('.devices')).gridTemplateColumns.split(' ').length===1,'narrow embedded cards use mobile layout');
+    wrapper.style.width='';await delay(30);
+  }
+  check(document.documentElement.scrollWidth<=innerWidth+1,'page fits viewport');
+  check(root.querySelector('main').scrollWidth<=root.querySelector('main').clientWidth+1,'dashboard fits viewport');
+  for(const element of root.querySelectorAll('button,select,input[type=search]')){
+    const rect=element.getBoundingClientRect();
+    if(rect.width&&rect.height)check(rect.height>=43,'touch target: '+(element.dataset.action||element.tagName));
+  }
+  document.body.dataset.result='pass';document.body.dataset.checks=String(checks.length);
+} catch(error){document.body.dataset.result='fail';document.body.dataset.error=error.stack;}

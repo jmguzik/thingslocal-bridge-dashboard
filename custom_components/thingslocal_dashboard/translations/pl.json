@@ -1,0 +1,4 @@
+{
+  "title": "ThingsLocal Dashboard",
+  "config": {"step": {"user": {"title": "ThingsLocal Dashboard", "description": "Dodaj panel urządzeń lokalnych na podstawie istniejących encji ThingsLocal Bridge. Język i ustawienia widoku są dostępne w panelu."}}, "abort": {"already_configured": "Panel ThingsLocal jest już skonfigurowany."}}
+}

@@ -1,0 +1,8 @@
+title: ThingsLocal
+views:
+  - title: ThingsLocal
+    path: overview
+    type: panel
+    cards:
+      - type: custom:thingslocal-bridge-dashboard
+        language: auto

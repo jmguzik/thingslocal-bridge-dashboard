@@ -1,0 +1,10 @@
+.private/
+.venv/
+dist/
+__pycache__/
+*.pyc
+node_modules/
+*.key
+*.csr
+.env
+*.local

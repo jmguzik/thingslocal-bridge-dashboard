@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ThingsLocal Dashboard · Preview</title>
+  <style>
+    :root{--primary-background-color:#f5f7f9;--card-background-color:#fff;--primary-text-color:#24333f;--secondary-text-color:#6a7d8b;--divider-color:#dce5eb;--primary-color:#1786ae;--warning-color:#a96c00;--error-color:#c74949}
+    :root.dark{--primary-background-color:#131b22;--card-background-color:#1e2932;--primary-text-color:#e4edf3;--secondary-text-color:#9cb0bf;--divider-color:#34434e;--primary-color:#62b6d6;--warning-color:#e5b14c;--error-color:#f17b7b}
+    body{margin:0;background:var(--primary-background-color);font-family:Arial,sans-serif;color:var(--primary-text-color)}
+    .preview-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 22px;font-size:12px;border-bottom:1px solid var(--divider-color);background:var(--card-background-color)}
+    .preview-bar div{display:flex;gap:8px}.preview-bar button{font:inherit;color:inherit;background:transparent;border:1px solid var(--divider-color);border-radius:8px;padding:8px;min-height:36px;cursor:pointer}
+    dialog{border:1px solid var(--divider-color);border-radius:14px;background:var(--card-background-color);color:inherit;max-width:calc(100vw - 40px);padding:22px}dialog::backdrop{background:#0006}dialog button{padding:12px;margin-top:12px}
+  </style>
+</head>
+<body>
+  <div class="preview-bar"><span id="demo-label">Demo · sample data</span><div><button id="theme" type="button">Light / Dark</button><button id="connection" type="button">Online / Offline</button></div></div>
+  <div id="app"></div><dialog id="detail"><p></p><button type="button" id="close-detail">Close / Zamknij</button></dialog>
+  <script type="module" src="./demo.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "name": "ThingsLocal Dashboard",
+  "homeassistant": "2026.10.0",
+  "render_readme": true,
+  "zip_release": true,
+  "filename": "thingslocal_dashboard.zip"
+}
